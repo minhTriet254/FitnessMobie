@@ -1,0 +1,34 @@
+.lesson-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.lesson-sidebar {
+  width: 300px;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.video-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  transition: 0.2s ease;
+}
+
+.video-item:hover {
+  background-color: #eaeaea;
+}
+
+.video-item.active {
+  background-color: #dcdcdc;
+  font-weight: bold;
+}
+
+.video-content {
+  flex: 1;
+  padding: 30px;
+}
