@@ -149,6 +149,8 @@ C:\Users\Admin\Desktop\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Identity.
 C:\Users\Admin\Desktop\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Options.dll
 D:\New folder\final\Api\bin\Debug\net8.0\appsettings.Development.json
 D:\New folder\final\Api\bin\Debug\net8.0\appsettings.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Web\package-lock.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Web\package.json
 D:\New folder\final\Api\bin\Debug\net8.0\Api.exe
 D:\New folder\final\Api\bin\Debug\net8.0\Api.deps.json
 D:\New folder\final\Api\bin\Debug\net8.0\Api.runtimeconfig.json
@@ -282,6 +284,7 @@ D:\New folder\final\Api\obj\Debug\net8.0\Api.AssemblyInfo.cs
 D:\New folder\final\Api\obj\Debug\net8.0\Api.csproj.CoreCompileInputs.cache
 D:\New folder\final\Api\obj\Debug\net8.0\Api.MvcApplicationPartsAssemblyInfo.cs
 D:\New folder\final\Api\obj\Debug\net8.0\Api.MvcApplicationPartsAssemblyInfo.cache
+D:\New folder\final\Api\obj\Debug\net8.0\Api.sourcelink.json
 D:\New folder\final\Api\obj\Debug\net8.0\staticwebassets.build.json
 D:\New folder\final\Api\obj\Debug\net8.0\staticwebassets.development.json
 D:\New folder\final\Api\obj\Debug\net8.0\staticwebassets\msbuild.Api.Microsoft.AspNetCore.StaticWebAssets.props
@@ -296,5 +299,3 @@ D:\New folder\final\Api\obj\Debug\net8.0\refint\Api.dll
 D:\New folder\final\Api\obj\Debug\net8.0\Api.pdb
 D:\New folder\final\Api\obj\Debug\net8.0\Api.genruntimeconfig.cache
 D:\New folder\final\Api\obj\Debug\net8.0\ref\Api.dll
-D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Web\package-lock.json
-D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Web\package.json

@@ -7,12 +7,14 @@ using Api.Dtos.Course;
 using Api.Mappers;
 using Api.Models;
 using Api.Repositories.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
     [Route("api/CourseController")]
     [ApiController]
+    [Authorize]
     public class CourseController : ControllerBase
     {
 
@@ -42,7 +44,7 @@ namespace Api.Controllers
             }
         
         
-        
+        [Authorize(Roles = "Admin")]
         [HttpPost]
 
         public async Task<IActionResult> Create([FromBody] AddCourseDto addCourseDto)
@@ -63,7 +65,7 @@ namespace Api.Controllers
             return CreatedAtAction(nameof(GetCourse), new { id = createdCourse.Id }, createdCourse.ToCourseDto());
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
             public async Task<IActionResult> Update(int id, [FromBody] UpdateCourseDto courseDto)
             {
@@ -81,7 +83,7 @@ namespace Api.Controllers
             
             }
 
-            // Delete a course by ID
+            [Authorize(Roles = "Admin")]
             [HttpDelete("{id}")]
             public async Task<IActionResult> Delete(int id)
             {

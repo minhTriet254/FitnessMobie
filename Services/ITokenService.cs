@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Api.Models;
 
-namespace Api.Repositories.Interface
+namespace Api.Services
 {
     public interface ITokenService
     {
-        string CreateToken(User user);
+        string CreateToken(User user, IList<string> roles);
     }
 }

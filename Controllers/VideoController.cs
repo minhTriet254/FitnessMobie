@@ -7,9 +7,10 @@ using Api.Mappers;
 using Api.Repositories.Interface;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.AspNetCore.Authorization;
 namespace Api.Controllers
 {
+    [Authorize]
     [Route("api/videoController")]
     [ApiController]
     public class VideoController:ControllerBase
@@ -40,7 +41,7 @@ namespace Api.Controllers
             }
             return Ok(video);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateVideo(int LessonId ,AddvideoDto addvideoDto)
         {
@@ -52,7 +53,7 @@ namespace Api.Controllers
             await _videoRepo.CreateAsyn(video);
             return CreatedAtAction(nameof(Getvideo), new { id = video.Id }, video.ToVideoDto());            
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPut]
         public async Task<IActionResult> UpdateVideo(int id,AddvideoDto addvideoDto)
         {
@@ -67,6 +68,7 @@ namespace Api.Controllers
             }
             return Ok(video.ToVideoDto());
         }
+        [Authorize(Roles = "Admin")]        
         [HttpDelete]
         public async Task<IActionResult> DeleteVideo(int id)
         {

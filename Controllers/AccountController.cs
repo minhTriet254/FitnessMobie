@@ -10,7 +10,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Api.Dtos.Account;
+using System.Security.Claims;  
+using Api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api.Controllers
 {
@@ -25,75 +27,97 @@ namespace Api.Controllers
             _tokenService = tokenService;
         }
 
-
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        public async Task<IActionResult> Register(RegisterDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+        var user = new User
+        {
+            UserName = dto.UserName,
+            Email = dto.Email
+        };
 
-                var appUser = new User
-                {
-                    UserName = registerDto.UserName,
-                    Email = registerDto.Email
-                };
+        var result = await _userManager.CreateAsync(user, dto.Password);
 
-                var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
 
-                if (createdUser.Succeeded)
-                {
-                    var roleResult = await _userManager.AddToRoleAsync(appUser, "User");
-                    if (roleResult.Succeeded)
-                    {
-                        return Ok
-                        (
-                            new NewUserDto
-                            {
-                                UserName=appUser.UserName,
-                                Email=appUser.Email,
-                                Token=_tokenService.CreateToken(appUser)
-                            }
-                        );
-                    }
-                    else
-                    {
-                        return StatusCode(500, roleResult.Errors);
-                    }
-                }
-                else
-                {
-                    return StatusCode(500, createdUser.Errors);
-                }
-            }
-            catch (Exception e)
-            {
-                return StatusCode(500, e);
-            }
+        await _userManager.AddToRoleAsync(user, "User");
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new
+        {
+            user.UserName,
+            user.Email,
+            role = roles.FirstOrDefault() ?? "User",
+            token = _tokenService.CreateToken(user, roles)
+        });
+        }
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto dto)
+    {
+        var user = await _userManager.FindByNameAsync(dto.UserName);
+
+        if (user == null)
+            return Unauthorized("Invalid username");
+
+        var valid = await _userManager.CheckPasswordAsync(user, dto.Password);
+
+        if (!valid)
+            return Unauthorized("Invalid password");
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new
+        {
+            user.UserName,
+            user.Email,
+            role = roles.FirstOrDefault() ?? "User",
+            token = _tokenService.CreateToken(user, roles)
+        });
+    }
+    
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<IActionResult> GetProfile()
+        {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user == null)
+            return NotFound();
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new
+        {
+            user.UserName,
+            user.Email,
+            role = roles.FirstOrDefault() ?? "User"
+        });
+        }
+        
+
+        [HttpGet("users")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+        var users = await _userManager.Users.ToListAsync();
+    
+        var usersDto = new List<object>();
+        foreach (var user in users)
+        {
+        var roles = await _userManager.GetRolesAsync(user);
+        usersDto.Add(new
+        {
+            user.Id,
+            user.UserName,
+            user.Email,
+            role = roles.FirstOrDefault() ?? "User"
+        });
         }
     
- 
-
-        [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto loginDto)
-        {
-            var user = await _userManager.FindByNameAsync(loginDto.UserName);
-
-            if (user == null)
-                return Unauthorized("Invalid username");
-
-            var result = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-
-            if (!result)
-                return Unauthorized("Invalid password");
-
-            return Ok(new
-            {
-                userName = user.UserName,
-                email = user.Email,
-                token = _tokenService.CreateToken(user)
-            });
+        return Ok(usersDto);
         }
     }
 }

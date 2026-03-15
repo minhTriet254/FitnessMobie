@@ -8,9 +8,10 @@ using Api.Mappers;
 using Api.Models;
 using Api.Repositories.Interface;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.AspNetCore.Authorization;
 namespace Api.Controllers
-{
+{    
+    [Authorize]
     [Route("api/LessonController")]
     [ApiController]
     public class LessonController : ControllerBase    
@@ -41,6 +42,7 @@ namespace Api.Controllers
                 }
             return Ok(lesson.ToLessonDetailDto());
         }
+        [Authorize(Roles = "Admin")]
         [HttpPost("CourseId")]
         public async Task<IActionResult> CreateLesson(int CourseId,AddLesson lessonDto)
         {
@@ -52,6 +54,7 @@ namespace Api.Controllers
             await _lessonRepo.CreateLessonAsync(lesson);
             return CreatedAtAction(nameof(GetLesson), new { id = lesson.Id }, lesson.ToLessonDto());
         }
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateLesson(int id, UpdateLessonDto updateLessonDto)
         {
@@ -67,7 +70,7 @@ namespace Api.Controllers
             return Ok(Lesson.ToLessonDto());
 
         }
-
+            [Authorize(Roles = "Admin")]
             [HttpDelete("{id}")]
             public async Task<IActionResult> Delete(int id)
             {
