@@ -13,17 +13,14 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<ILessonRepostory, LessonRepostory>();
-builder.Services.AddScoped<IVideoRepository, VideoRepository>();
-builder.Services.AddScoped<ITokenService, TokenService>();
-
+// Add Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -34,6 +31,7 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// Add Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -52,22 +50,45 @@ builder.Services.AddAuthentication(options =>
             Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])
         ),
         ValidateLifetime = false,
-        // specify which claim type should be treated as role
         RoleClaimType = ClaimTypes.Role
     };
 });
 
+// Add Repositories
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ILessonRepostory, LessonRepostory>();
+builder.Services.AddScoped<IVideoRepository, VideoRepository>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+// Add Services
+builder.Services.AddScoped<VnPayService>(); // THÊM DÒNG NÀY
+
+// Add Session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
+// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173","http://localhost:5174")
+            policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // THÊM DÒNG NÀY cho phép gửi cookie/session
         });
 });
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -110,19 +131,21 @@ app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSession(); // THÊM DÒNG NÀY - PHẢI ĐẶT TRƯỚC MapControllers
 
 app.MapControllers();
 
-
-
+// Seed data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
     var userManager = services.GetRequiredService<UserManager<User>>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var context = services.GetRequiredService<ApplicationDbContext>();
 
-    await SeedData.SeedAdminAsync(userManager, roleManager);
+await SeedData.SeedAdminAsync(userManager, roleManager);
+await SeedData.SeedPremiumPackagesAsync(context);
 }
 
 app.Run();
+
