@@ -30,21 +30,26 @@ namespace Api.Controllers
             _courseRepository = courseRepository;
             _accessService = accessService;
         }
-        
+
         [HttpGet("courses")]
         public async Task<IActionResult> GetCourses()
         {
             var courses = await _courseRepository.GetCoursesAsync();
-            
-            // Lấy userId để kiểm tra quyền cho từng course
+
+            // Lấy userId và kiểm tra null
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
             var courseDtos = new List<object>();
-            
+
             foreach (var course in courses)
             {
                 var canAccess = await _accessService.CanAccessCourse(userId, course.Id);
-                
+
                 courseDtos.Add(new
                 {
                     course.Id,
@@ -58,10 +63,10 @@ namespace Api.Controllers
                     AccessMessage = GetAccessMessage(canAccess, course.Price)
                 });
             }
-            
+
             return Ok(courseDtos);
         }
-        
+                
         [HttpGet("course/{id}")]
         public async Task<IActionResult> GetCourse(int id)
         {
@@ -73,7 +78,10 @@ namespace Api.Controllers
 
             // Lấy userId từ claims
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
             // Kiểm tra quyền truy cập
             var canAccess = await _accessService.CanAccessCourse(userId, course.Id);
             
@@ -102,6 +110,10 @@ namespace Api.Controllers
             }
 
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
             var canAccess = await _accessService.CanAccessCourse(userId, course.Id);
             
             // Kiểm tra xem user có phải Premium hoặc Admin không
