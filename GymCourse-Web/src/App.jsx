@@ -10,6 +10,9 @@ import CourseList from "./pages/CourseList";
 import CourseDetail from "./pages/CourseDetail";
 import LessonDetail from "./pages/LessonDetail";
 import AdminDashboard from "./admin/AdminDashboard";
+import PremiumSuccess from "./pages/PremiumSuccess";
+import PremiumFailed from "./pages/PremiumFailed";
+import PremiumMockPayment from "./pages/PremiumMockPayment";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -22,8 +25,14 @@ function App() {
     const savedUser = localStorage.getItem("user");
     
     if (token && savedUser) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(savedUser));
+      try {
+        const userData = JSON.parse(savedUser);
+        setIsAuthenticated(true);
+        setUser(userData);
+      } catch (e) {
+        console.error("Error parsing user data:", e);
+        localStorage.removeItem("user");
+      }
     }
     setLoading(false);
   }, []);
@@ -37,6 +46,7 @@ function App() {
     // Xóa dữ liệu trong localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("mock_premium"); // Xóa cả mock premium nếu có
     
     // Cập nhật state
     setIsAuthenticated(false);
@@ -55,7 +65,7 @@ function App() {
       {isAuthenticated && <Header user={user} onLogout={handleLogout} />}
       
       <Routes>
-        {/* Public routes */}
+        {/* Public routes - không cần đăng nhập */}
         <Route path="/login" element={
           isAuthenticated ? 
             <Navigate to={user?.role === "Admin" ? "/admin" : "/"} replace /> : 
@@ -68,7 +78,12 @@ function App() {
             <Register onLogin={handleLogin} />
         } />
 
-        {/* Protected routes */}
+        {/* Premium routes - public để VNPay có thể redirect về */}
+        <Route path="/premium-success" element={<PremiumSuccess />} />
+        <Route path="/premium-failed" element={<PremiumFailed />} />
+        <Route path="/premium-mock" element={<PremiumMockPayment />} />
+
+        {/* Protected routes - yêu cầu đăng nhập */}
         <Route path="/" element={
           <ProtectedRoute isAuthenticated={isAuthenticated}>
             <CourseList />
@@ -87,7 +102,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* Admin routes */}
+        {/* Admin routes - yêu cầu role Admin */}
         <Route path="/admin/*" element={
           <AdminRoute isAuthenticated={isAuthenticated} user={user}>
             <AdminDashboard />

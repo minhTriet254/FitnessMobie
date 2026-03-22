@@ -8,7 +8,9 @@ function CourseManagement() {
   const [editingCourse, setEditingCourse] = useState(null);
   const [formData, setFormData] = useState({ 
     name: "", 
-    description: ""
+    description: "",
+    courseType: "free",  // "free" hoặc "premium"
+    price: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,8 +30,6 @@ function CourseManagement() {
   const fetchCourses = async () => {
     setLoading(true);
     try {
-      console.log("Fetching courses with token:", token);
-      
       const response = await fetch("http://localhost:5086/api/CourseController/courses", {
         method: "GET",
         headers: {
@@ -38,8 +38,6 @@ function CourseManagement() {
         }
       });
 
-      console.log("Response status:", response.status);
-      
       if (response.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -53,12 +51,10 @@ function CourseManagement() {
       }
 
       const data = await response.json();
-      console.log("Courses data:", data);
       
       if (Array.isArray(data)) {
         setCourses(data);
       } else {
-        console.error("Invalid data format:", data);
         setCourses([]);
       }
       
@@ -83,7 +79,8 @@ function CourseManagement() {
         },
         body: JSON.stringify({
           name: formData.name,
-          description: formData.description || ""
+          description: formData.description || "",
+          price: formData.courseType === "premium" ? 1 : 0
         })
       });
 
@@ -94,7 +91,7 @@ function CourseManagement() {
 
       await fetchCourses();
       setShowForm(false);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", courseType: "free", price: 0 });
       setError("");
       
     } catch (error) {
@@ -118,7 +115,8 @@ function CourseManagement() {
         },
         body: JSON.stringify({
           name: formData.name,
-          description: formData.description || ""
+          description: formData.description || "",
+          price: formData.courseType === "premium" ? 1 : 0
         })
       });
 
@@ -130,7 +128,7 @@ function CourseManagement() {
       await fetchCourses();
       setShowForm(false);
       setEditingCourse(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", courseType: "free", price: 0 });
       setError("");
       
     } catch (error) {
@@ -146,7 +144,7 @@ function CourseManagement() {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      setError("Course name is required");
+      setError("Vui lòng nhập tên khóa học");
       return;
     }
 
@@ -160,7 +158,7 @@ function CourseManagement() {
   // Handle delete course
   const handleDelete = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this course?")) return;
+    if (!window.confirm("Bạn có chắc chắn muốn xóa khóa học này?")) return;
 
     try {
       const response = await fetch(`http://localhost:5086/api/CourseController/${id}`, {
@@ -179,7 +177,7 @@ function CourseManagement() {
       
     } catch (error) {
       console.error("Error deleting course:", error);
-      setError("Failed to delete course");
+      setError("Không thể xóa khóa học");
     }
   };
 
@@ -189,7 +187,9 @@ function CourseManagement() {
     setEditingCourse(course);
     setFormData({ 
       name: course.name, 
-      description: course.description || "" 
+      description: course.description || "",
+      courseType: course.price > 0 ? "premium" : "free",
+      price: course.price || 0
     });
     setShowForm(true);
     setError("");
@@ -199,67 +199,116 @@ function CourseManagement() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingCourse(null);
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "", description: "", courseType: "free", price: 0 });
     setError("");
   };
 
+  // Handle course type change
+  const handleTypeChange = (e) => {
+    const newType = e.target.value;
+    setFormData({ 
+      ...formData, 
+      courseType: newType,
+      price: newType === "premium" ? 1 : 0
+    });
+  };
 
+  // Format price display
+  const formatPrice = (price) => {
+    if (price === 0) return "🎓 Free";
+    if (price === 1) return "⭐ Premium";
+    return new Intl.NumberFormat('vi-VN', { 
+      style: 'currency', 
+      currency: 'VND' 
+    }).format(price);
+  };
+
+  // Get badge class for price
+  const getPriceBadgeClass = (price) => {
+    if (price === 0) return "badge-free";
+    if (price === 1) return "badge-premium";
+    return "badge-paid";
+  };
 
   return (
     <div className="admin-section">
       <div className="section-header">
-        <h2>Course Management</h2>
+        <h2>📚 Quản lý khóa học</h2>
         <button 
           onClick={() => { 
             setShowForm(true); 
             setEditingCourse(null); 
-            setFormData({ name: "", description: "" }); 
+            setFormData({ name: "", description: "", courseType: "free", price: 0 }); 
             setError("");
           }} 
           className="btn-primary"
           disabled={loading}
         >
-          + Add New Course
+          + Thêm khóa học mới
         </button>
       </div>
 
       {error && (
         <div className="error-message">
-          {error}
+          ❌ {error}
         </div>
       )}
 
       {loading && !showForm && (
-        <div className="loading-indicator">Loading courses...</div>
+        <div className="loading-indicator">
+          <div className="spinner"></div>
+          <p>Đang tải khóa học...</p>
+        </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="admin-form">
-          <h3>{editingCourse ? "Edit Course" : "Create New Course"}</h3>
+        <form onSubmit={handleSubmit} className="admin-form course-form">
+          <h3>{editingCourse ? "✏️ Chỉnh sửa khóa học" : "📖 Tạo khóa học mới"}</h3>
           
           <div className="form-group">
-            <label htmlFor="name">Course Name <span className="required">*</span></label>
+            <label htmlFor="name">Tên khóa học <span className="required">*</span></label>
             <input
               type="text"
               id="name"
               name="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter course name"
+              placeholder="Nhập tên khóa học"
               required
               autoFocus
               disabled={loading}
             />
           </div>
 
+          {/* Loại khóa học - Select dropdown */}
           <div className="form-group">
-            <label htmlFor="description">Description (Optional)</label>
+            <label htmlFor="courseType">Loại khóa học</label>
+            <select
+              id="courseType"
+              name="courseType"
+              value={formData.courseType}
+              onChange={handleTypeChange}
+              className="course-type-select"
+              disabled={loading}
+            >
+              <option value="free">🎓 Khóa học Miễn phí</option>
+              <option value="premium">⭐ Khóa học Premium</option>
+            </select>
+            <small className="form-hint">
+              {formData.courseType === "premium" 
+                ? "🔒 Khóa học premium chỉ dành cho thành viên Premium" 
+                : "🎉 Khóa học miễn phí cho tất cả người dùng"}
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Mô tả (Tùy chọn)</label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter course description"
+              placeholder="Nhập mô tả khóa học"
               rows="3"
               disabled={loading}
             />
@@ -271,7 +320,7 @@ function CourseManagement() {
               className="btn-primary" 
               disabled={loading}
             >
-              {loading ? "Saving..." : (editingCourse ? "Update Course" : "Create Course")}
+              {loading ? "Đang xử lý..." : (editingCourse ? "Cập nhật khóa học" : "Tạo khóa học")}
             </button>
             <button 
               type="button" 
@@ -279,25 +328,36 @@ function CourseManagement() {
               className="btn-secondary"
               disabled={loading}
             >
-              Cancel
+              Hủy
             </button>
           </div>
         </form>
       )}
 
       <div className="courses-list">
-        <h3>All Courses ({courses.length})</h3>
+        <h3>Danh sách khóa học ({courses.length})</h3>
         
         {courses.length === 0 && !loading ? (
-          <p className="no-data">No courses found. Click "Add New Course" to create one.</p>
+          <div className="no-data">
+            <span>📭</span>
+            <p>Chưa có khóa học nào</p>
+            <button onClick={() => { 
+              setShowForm(true); 
+              setEditingCourse(null); 
+              setFormData({ name: "", description: "", courseType: "free", price: 0 }); 
+            }} className="btn-primary">
+              Tạo khóa học đầu tiên
+            </button>
+          </div>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Course Name</th>
-                <th>Description</th>
-                <th>Actions</th>
+                <th>Tên khóa học</th>
+                <th>Loại</th>
+                <th>Mô tả</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -306,30 +366,33 @@ function CourseManagement() {
                   key={course.id}
                   className="clickable-row"
                   onClick={() => navigate(`/admin/courses/${course.id}/lessons`)}
-                  style={{ cursor: "pointer" }}
                 >
                   <td>{course.id}</td>
                   <td>
                     <strong>{course.name}</strong>
                   </td>
                   <td>
-                    {course.description || <span className="text-muted">No description</span>}
+                    <span className={`price-badge ${getPriceBadgeClass(course.price)}`}>
+                      {formatPrice(course.price)}
+                    </span>
                   </td>
-
+                  <td className="course-description">
+                    {course.description || <span className="text-muted">—</span>}
+                  </td>
                   <td className="actions" onClick={(e) => e.stopPropagation()}>
                     <button 
                       onClick={(e) => handleEdit(course, e)} 
                       className="btn-edit"
-                      title="Edit course"
+                      title="Chỉnh sửa"
                     >
-                      ✏️ Edit
+                      ✏️
                     </button>
                     <button 
                       onClick={(e) => handleDelete(course.id, e)} 
                       className="btn-delete"
-                      title="Delete course"
+                      title="Xóa"
                     >
-                      🗑️ Delete
+                      🗑️
                     </button>
                   </td>
                 </tr>
