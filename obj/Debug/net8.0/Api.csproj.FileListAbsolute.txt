@@ -299,3 +299,14 @@ D:\New folder\final\Api\obj\Debug\net8.0\refint\Api.dll
 D:\New folder\final\Api\obj\Debug\net8.0\Api.pdb
 D:\New folder\final\Api\obj\Debug\net8.0\Api.genruntimeconfig.cache
 D:\New folder\final\Api\obj\Debug\net8.0\ref\Api.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Caching.Abstractions.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Caching.Memory.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Hosting.Abstractions.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
+D:\New folder\final\Api\bin\Debug\net8.0\Microsoft.Extensions.Primitives.dll
+D:\New folder\final\Api\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
+D:\New folder\final\Api\bin\Debug\net8.0\System.Security.Cryptography.Pkcs.dll
+D:\New folder\final\Api\bin\Debug\net8.0\System.Security.Cryptography.Xml.dll
+D:\New folder\final\Api\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll

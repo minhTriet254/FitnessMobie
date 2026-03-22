@@ -29,7 +29,8 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 8;
 })
-.AddEntityFrameworkStores<ApplicationDbContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 // Add Authentication
 builder.Services.AddAuthentication(options =>
@@ -41,9 +42,9 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
+        ValidateIssuer = true,
         ValidIssuer = builder.Configuration["JWT:Issuer"],
-        ValidateAudience = false,
+        ValidateAudience = true,
         ValidAudience = builder.Configuration["JWT:Audience"],
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(
@@ -54,14 +55,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Add HttpClient for MoMo
+builder.Services.AddHttpClient<MoMoService>();
+
 // Add Repositories
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ILessonRepostory, LessonRepostory>();
 builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAccessService, AccessService>();
 
 // Add Services
-builder.Services.AddScoped<VnPayService>(); // THÊM DÒNG NÀY
+builder.Services.AddScoped<MoMoService>();
 
 // Add Session
 builder.Services.AddDistributedMemoryCache();
@@ -82,13 +87,16 @@ builder.Services.AddCors(options =>
             policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials(); // THÊM DÒNG NÀY cho phép gửi cookie/session
+                  .AllowCredentials();
         });
 });
 
+// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+builder.Logging.AddFilter("Api.Services.MoMoService", LogLevel.Debug);
+// Add Controllers
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -127,11 +135,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseSession(); // THÊM DÒNG NÀY - PHẢI ĐẶT TRƯỚC MapControllers
+app.UseSession();
 
 app.MapControllers();
 
@@ -143,9 +151,8 @@ using (var scope = app.Services.CreateScope())
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var context = services.GetRequiredService<ApplicationDbContext>();
 
-await SeedData.SeedAdminAsync(userManager, roleManager);
-await SeedData.SeedPremiumPackagesAsync(context);
+    await SeedData.SeedAdminAsync(userManager, roleManager);
+    await SeedData.SeedPremiumPackagesAsync(context);
 }
 
 app.Run();
-

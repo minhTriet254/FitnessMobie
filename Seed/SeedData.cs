@@ -45,6 +45,7 @@ namespace Api.Seed
                         Name = "Premium 1 tháng", 
                         Months = 1, 
                         Price = 200000,
+                        DiscountPrice = 200000,
                         Description = "Sử dụng Premium trong 1 tháng",
                         IsActive = true 
                     },

@@ -70,9 +70,9 @@ namespace Api.Controllers
             return Ok(Lesson.ToLessonDto());
 
         }
-            [Authorize(Roles = "Admin")]
-            [HttpDelete("{id}")]
-            public async Task<IActionResult> Delete(int id)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
             {
                 var course = await _lessonRepo.DeleteLessonAsync(id);
                 if (course == null)

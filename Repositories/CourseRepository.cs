@@ -21,7 +21,7 @@ namespace Api.Repositories
 
         public async Task<List<Course>> GetCoursesAsync()
         {
-            return await _dbContext.Courses.ToListAsync();
+            return await _dbContext.Courses.Include(c => c.Lessons).ToListAsync();
         }
         
         public async Task<Course?> GetCourseAsync(int id)
