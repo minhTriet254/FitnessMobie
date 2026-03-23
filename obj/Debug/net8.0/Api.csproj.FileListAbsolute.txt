@@ -310,3 +310,9 @@ D:\New folder\final\Api\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
 D:\New folder\final\Api\bin\Debug\net8.0\System.Security.Cryptography.Pkcs.dll
 D:\New folder\final\Api\bin\Debug\net8.0\System.Security.Cryptography.Xml.dll
 D:\New folder\final\Api\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Mobile\app.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Mobile\package-lock.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Mobile\package.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Mobile\tsconfig.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Mobile\_vscode\extensions.json
+D:\New folder\final\Api\bin\Debug\net8.0\GymCourse-Mobile\_vscode\settings.json
