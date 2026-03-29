@@ -9,7 +9,6 @@ namespace Api.Dtos.Account
     public class LoginDto
     {
         [Required]
-        [EmailAddress]
         public string UserName { get; set; } = string.Empty;
 
         [Required]

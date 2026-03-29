@@ -55,7 +55,7 @@ namespace Api.Controllers
         }
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
-    {
+        {
         var user = await _userManager.FindByNameAsync(dto.UserName);
 
         if (user == null)
@@ -75,28 +75,42 @@ namespace Api.Controllers
             role = roles.FirstOrDefault() ?? "User",
             token = _tokenService.CreateToken(user, roles)
         });
-    }
-    
-        [HttpGet("profile")]
-        [Authorize]
-        public async Task<IActionResult> GetProfile()
-        {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var user = await _userManager.FindByIdAsync(userId);
-
-        if (user == null)
-            return NotFound();
-
-        var roles = await _userManager.GetRolesAsync(user);
-
-        return Ok(new
-        {
-            user.UserName,
-            user.Email,
-            role = roles.FirstOrDefault() ?? "User"
-        });
         }
-        
+  
+        [Authorize]
+        [HttpPost("profile")]
+        public async Task<IActionResult> UpdateProfile(ProfileDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId == null)
+                return Unauthorized("User not found");
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user == null)
+                return NotFound("User does not exist");
+
+            user.Height = dto.Height;
+            user.Weight = dto.Weight;
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                message = "Profile updated successfully",
+                user = new
+                {
+                    user.UserName,
+                    user.Email,
+                    user.Height,
+                    user.Weight
+                }
+            });
+        }
 
         [HttpGet("users")]
         [Authorize(Roles = "Admin")]
