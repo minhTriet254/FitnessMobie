@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.168.1.22:5086';
+const API_BASE_URL = 'http://192.168.1.2:5086';
 
 console.log('=== API Configuration ===');
 console.log('Base URL:', API_BASE_URL);
@@ -25,10 +25,15 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    console.error('❌ Request error:', error);
-    return Promise.reject(error);
+(error) => {
+  const status = error?.response?.status;
+
+  if (status !== 403) {
+    console.error('❌ Response error:', status, error.message);
   }
+
+  return Promise.reject(error);
+}
 );
 
 // Response interceptor
@@ -37,10 +42,15 @@ api.interceptors.response.use(
     console.log(`✅ RESPONSE: ${response.status} ${response.config.url}`);
     return response;
   },
-  (error) => {
-    console.error('❌ Response error:', error.response?.status, error.message);
-    return Promise.reject(error);
+(error) => {
+  const status = error?.response?.status;
+
+  if (status !== 403) {
+    console.error('❌ Response error:', status, error.message);
   }
+
+  return Promise.reject(error);
+}
 );
 
 export default api;

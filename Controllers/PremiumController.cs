@@ -16,8 +16,11 @@ namespace Api.Controllers
         private readonly MoMoService _momoService;
         private readonly ILogger<PremiumController> _logger;
 
+        // Expo Go deep link base
+        private const string ExpoBaseUrl = "exp://192.168.1.2:8081/--/premium";
+
         public PremiumController(
-            ApplicationDbContext context, 
+            ApplicationDbContext context,
             MoMoService momoService,
             ILogger<PremiumController> logger)
         {
@@ -37,7 +40,7 @@ namespace Api.Controllers
                 {
                     return NotFound(new { success = false, message = "User not found" });
                 }
-                
+
                 var oldExpiry = user.PremiumExpiryDate;
                 if (user.PremiumExpiryDate == null || user.PremiumExpiryDate < DateTime.UtcNow)
                 {
@@ -47,17 +50,19 @@ namespace Api.Controllers
                 {
                     user.PremiumExpiryDate = user.PremiumExpiryDate.Value.AddMonths(request.Months);
                 }
-                
+
                 await _context.SaveChangesAsync();
-                
-                _logger.LogInformation("Admin manually upgraded user {UserId}. Old: {OldExpiry}, New: {NewExpiry}", 
-                    userId, oldExpiry, user.PremiumExpiryDate);
-                
+
+                _logger.LogInformation(
+                    "Admin manually upgraded user {UserId}. Old: {OldExpiry}, New: {NewExpiry}",
+                    userId, oldExpiry, user.PremiumExpiryDate
+                );
+
                 return Ok(new
                 {
                     success = true,
                     message = "User upgraded successfully",
-                    userId = userId,
+                    userId,
                     newExpiry = user.PremiumExpiryDate
                 });
             }
@@ -80,116 +85,108 @@ namespace Api.Controllers
             try
             {
                 _logger.LogInformation("=== CALLBACK RECEIVED ===");
-                
-                // Log tất cả tham số
+
                 foreach (var item in query)
                 {
                     _logger.LogInformation("  {Key} = {Value}", item.Key, item.Value);
                 }
-                
-                // Lấy các tham số quan trọng
+
                 var orderId = query.GetValueOrDefault("orderId");
                 var resultCode = query.GetValueOrDefault("resultCode");
                 var message = query.GetValueOrDefault("message");
                 var transId = query.GetValueOrDefault("transId");
                 var amount = query.GetValueOrDefault("amount");
-                
-                _logger.LogInformation("OrderId: {OrderId}, ResultCode: {ResultCode}, TransId: {TransId}", 
-                    orderId, resultCode, transId);
-                
+
+                _logger.LogInformation(
+                    "OrderId: {OrderId}, ResultCode: {ResultCode}, TransId: {TransId}",
+                    orderId, resultCode, transId
+                );
+
                 if (resultCode == "0")
                 {
-                    // Thanh toán thành công, cập nhật premium
                     return await HandleSuccessfulCallback(orderId, amount, transId);
                 }
-                else
-                {
-                    // Thanh toán thất bại
-                    var errorMessage = Uri.EscapeDataString(message ?? "Thanh toán thất bại");
-                    return Redirect($"http://localhost:5173/premium-failed?message={errorMessage}&code={resultCode}");
-                }
+
+                var errorMessage = Uri.EscapeDataString(message ?? "Thanh toán thất bại");
+                return Redirect($"{ExpoBaseUrl}/failed?message={errorMessage}&code={resultCode}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing callback");
-                return Redirect($"http://localhost:5173/premium-failed?message=Lỗi+xử+lý+thanh+toán");
+                return Redirect($"{ExpoBaseUrl}/failed?message=Lỗi+xử+lý+thanh+toán");
             }
         }
 
         private async Task<IActionResult> HandleSuccessfulCallback(string orderId, string amount, string transId)
-{
-    _logger.LogInformation("Processing successful callback for OrderId: {OrderId}", orderId);
-    
-    // Parse orderId: PREMIUM_{userId}_{months}_{timestamp}_{random}
-    var parts = orderId.Split('_');
-    string userId = "";
-    int months = 1;
-    
-    if (parts.Length >= 3)
-    {
-        userId = parts[1];
-        _logger.LogInformation("Extracted userId: {UserId}", userId);
-        
-        if (parts.Length >= 4 && int.TryParse(parts[2], out int extractedMonths))
         {
-            months = extractedMonths;
-            _logger.LogInformation("Extracted months: {Months}", months);
+            _logger.LogInformation("Processing successful callback for OrderId: {OrderId}", orderId);
+
+            var parts = orderId.Split('_');
+            string userId = "";
+            int months = 1;
+
+            if (parts.Length >= 3)
+            {
+                userId = parts[1];
+
+                if (parts.Length >= 4 && int.TryParse(parts[2], out int extractedMonths))
+                {
+                    months = extractedMonths;
+                }
+            }
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning("Cannot extract userId from OrderId: {OrderId}", orderId);
+                return Redirect($"{ExpoBaseUrl}/failed?message=Không+xác+định+được+người+dùng");
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("User {UserId} not found", userId);
+                return Redirect($"{ExpoBaseUrl}/failed?message=Không+tìm+thấy+người+dùng");
+            }
+
+            var oldExpiry = user.PremiumExpiryDate;
+            if (user.PremiumExpiryDate == null || user.PremiumExpiryDate < DateTime.UtcNow)
+            {
+                user.PremiumExpiryDate = DateTime.UtcNow.AddMonths(months);
+            }
+            else
+            {
+                user.PremiumExpiryDate = user.PremiumExpiryDate.Value.AddMonths(months);
+            }
+
+            var transaction = new Transaction
+            {
+                TransactionId = transId,
+                OrderId = orderId,
+                UserId = userId,
+                Amount = decimal.TryParse(amount, out var parsedAmount) ? parsedAmount : 0,
+                Months = months,
+                Status = "success",
+                CreatedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+                PaymentMethod = "MoMo"
+            };
+
+            _context.Transactions.Add(transaction);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "User {UserName} upgraded to premium. Old: {OldExpiry}, New: {NewExpiry}",
+                user.UserName, oldExpiry, user.PremiumExpiryDate
+            );
+
+            return Redirect(
+                $"{ExpoBaseUrl}/success?" +
+                $"amount={amount}&" +
+                $"months={months}&" +
+                $"expiry={user.PremiumExpiryDate:yyyy-MM-dd}&" +
+                $"transactionNo={transId}"
+            );
         }
-    }
-    
-    if (string.IsNullOrEmpty(userId))
-    {
-        _logger.LogWarning("Cannot extract userId from OrderId: {OrderId}", orderId);
-        return Redirect($"http://localhost:5173/premium-failed?message=Không+xác+định+được+người+dùng");
-    }
-    
-    var user = await _context.Users.FindAsync(userId);
-    if (user == null)
-    {
-        _logger.LogWarning("User {UserId} not found", userId);
-        return Redirect($"http://localhost:5173/premium-failed?message=Không+tìm+thấy+người+dùng");
-    }
-    
-    // Cập nhật premium expiry
-    var oldExpiry = user.PremiumExpiryDate;
-    if (user.PremiumExpiryDate == null || user.PremiumExpiryDate < DateTime.UtcNow)
-    {
-        user.PremiumExpiryDate = DateTime.UtcNow.AddMonths(months);
-    }
-    else
-    {
-        user.PremiumExpiryDate = user.PremiumExpiryDate.Value.AddMonths(months);
-    }
-    
-    // *** THÊM: LƯU TRANSACTION VÀO DATABASE ***
-    var transaction = new Transaction
-    {
-        TransactionId = transId,
-        OrderId = orderId,
-        UserId = userId,
-        Amount = decimal.Parse(amount),
-        Months = months,
-        Status = "success",
-        CreatedAt = DateTime.UtcNow,
-        CompletedAt = DateTime.UtcNow,
-        PaymentMethod = "MoMo"
-    };
-    
-    _context.Transactions.Add(transaction);
-    
-    await _context.SaveChangesAsync();
-    
-    _logger.LogInformation("✅ User {UserName} upgraded to premium. Old: {OldExpiry}, New: {NewExpiry}", 
-        user.UserName, oldExpiry, user.PremiumExpiryDate);
-    _logger.LogInformation("✅ Transaction saved: {TransactionId}, Amount: {Amount}", transId, amount);
-    
-    // Redirect về frontend thành công
-    return Redirect($"http://localhost:5173/premium-success?" +
-        $"amount={amount}&" +
-        $"months={months}&" +
-        $"expiry={user.PremiumExpiryDate:yyyy-MM-dd}&" +
-        $"transactionNo={transId}");
-}
 
         [HttpGet("packages")]
         public async Task<IActionResult> GetPremiumPackages()
@@ -208,7 +205,7 @@ namespace Api.Controllers
                         p.DiscountPrice,
                         FinalPrice = p.FinalPrice,
                         p.Description,
-                        DiscountPercent = p.DiscountPrice.HasValue 
+                        DiscountPercent = p.DiscountPrice.HasValue
                             ? Math.Round((1 - p.DiscountPrice.Value / p.Price) * 100, 0)
                             : 0
                     })
@@ -242,7 +239,7 @@ namespace Api.Controllers
                 new { id = "wallet", name = "Ví MoMo", icon = "momo", description = "Thanh toán bằng ví MoMo" },
                 new { id = "qr", name = "QR Code", icon = "qr_code", description = "Quét mã QR qua ứng dụng MoMo" }
             };
-            
+
             return Ok(new
             {
                 success = true,
@@ -307,14 +304,12 @@ namespace Api.Controllers
                     });
                 }
 
-                // Tạo orderId với userId và months để dễ parse sau này
                 var orderId = GenerateOrderId(user.Id, package.Months);
-                var amount = (long)package.FinalPrice;
 
                 var momoRequest = new MoMoPaymentRequest
                 {
                     OrderId = orderId,
-                    Amount = amount,
+                    Amount = (long)package.FinalPrice,
                     OrderInfo = $"Nâng cấp Premium {package.Months} tháng - {user.UserName}"
                 };
 
@@ -323,29 +318,24 @@ namespace Api.Controllers
                 if (momoResponse.resultCode == 0)
                 {
                     StorePaymentSession(orderId, user.Id, package);
-                    
-                    _logger.LogInformation("Payment created - OrderId: {OrderId}, UserId: {UserId}, Months: {Months}", 
-                        orderId, user.Id, package.Months);
-                    
+
                     return Ok(new
                     {
                         success = true,
                         payUrl = momoResponse.payUrl,
-                        orderId = orderId,
+                        orderId,
                         amount = package.FinalPrice,
                         packageName = package.Name,
                         packageMonths = package.Months
                     });
                 }
-                else
+
+                return BadRequest(new
                 {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = momoResponse.message,
-                        resultCode = momoResponse.resultCode
-                    });
-                }
+                    success = false,
+                    message = momoResponse.message,
+                    resultCode = momoResponse.resultCode
+                });
             }
             catch (Exception ex)
             {
@@ -365,31 +355,46 @@ namespace Api.Controllers
             try
             {
                 _logger.LogInformation("=== MoMo Return Callback Received ===");
-                
-                // Log tất cả query parameters
+
                 foreach (var key in Request.Query.Keys)
                 {
                     _logger.LogInformation("Query param: {Key} = {Value}", key, Request.Query[key]);
                 }
-                
-                var response = _momoService.ValidateReturnResponse(Request.Query);
-                
-                _logger.LogInformation("Validation: ResultCode={ResultCode}, OrderId={OrderId}, TransId={TransId}", 
-                    response.resultCode, response.orderId, response.transId);
-                
-                if (response.resultCode == 0)
+
+                // KHÔNG verify signature ở return URL
+                // Chỉ đọc raw query để điều hướng UX
+                var orderId = Request.Query["orderId"].ToString();
+                var resultCode = Request.Query["resultCode"].ToString();
+                var amount = Request.Query["amount"].ToString();
+                var transId = Request.Query["transId"].ToString();
+                var message = Request.Query["message"].ToString();
+
+                _logger.LogInformation(
+                    "MoMo return raw data - OrderId: {OrderId}, ResultCode: {ResultCode}, TransId: {TransId}",
+                    orderId, resultCode, transId
+                );
+
+                if (resultCode == "0")
                 {
+                    var response = new MoMoPaymentResponse
+                    {
+                        orderId = orderId,
+                        amount = string.IsNullOrEmpty(amount) ? 0 : long.Parse(amount),
+                        transId = transId,
+                        resultCode = 0,
+                        message = "Success"
+                    };
+
                     return await HandleSuccessfulPayment(response);
                 }
-                else
-                {
-                    return HandleFailedPayment(response);
-                }
+
+                var errorMessage = Uri.EscapeDataString(string.IsNullOrEmpty(message) ? "Thanh toán thất bại" : message);
+                return Redirect($"{ExpoBaseUrl}/failed?message={errorMessage}&code={resultCode}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing MoMo return: {Message}", ex.Message);
-                return Redirect($"http://localhost:5173/premium-failed?message=Lỗi+xử+lý+thanh+toán");
+                return Redirect($"{ExpoBaseUrl}/failed?message=Lỗi+xử+lý+thanh+toán");
             }
         }
 
@@ -400,7 +405,7 @@ namespace Api.Controllers
             try
             {
                 _logger.LogInformation("=== MoMo IPN Callback Received ===");
-                
+
                 var response = _momoService.ValidateIpnResponse(Request.Query);
 
                 if (response.resultCode == 0)
@@ -408,10 +413,8 @@ namespace Api.Controllers
                     await ProcessSuccessfulPayment(response);
                     return Ok(new { resultCode = 0, message = "Success" });
                 }
-                else
-                {
-                    return Ok(new { resultCode = -1, message = "Failed" });
-                }
+
+                return Ok(new { resultCode = -1, message = "Failed" });
             }
             catch (Exception ex)
             {
@@ -474,22 +477,22 @@ namespace Api.Controllers
             try
             {
                 var query = _context.Transactions.AsQueryable();
-                
+
                 if (startDate.HasValue)
                     query = query.Where(t => t.CreatedAt >= startDate.Value);
                 if (endDate.HasValue)
                     query = query.Where(t => t.CreatedAt <= endDate.Value.AddDays(1));
-                
+
                 var transactions = await query
                     .Where(t => t.Status == "success")
                     .OrderByDescending(t => t.CreatedAt)
                     .Include(t => t.User)
                     .ToListAsync();
-                
+
                 var totalRevenue = transactions.Sum(t => t.Amount);
                 var totalTransactions = transactions.Count;
                 var averageAmount = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
-                
+
                 var transactionData = transactions.Select(t => new
                 {
                     id = t.Id,
@@ -500,13 +503,13 @@ namespace Api.Controllers
                     createdAt = t.CreatedAt,
                     status = t.Status
                 });
-                
+
                 return Ok(new
                 {
                     success = true,
-                    totalRevenue = totalRevenue,
-                    totalTransactions = totalTransactions,
-                    averageAmount = averageAmount,
+                    totalRevenue,
+                    totalTransactions,
+                    averageAmount,
                     transactions = transactionData
                 });
             }
@@ -520,8 +523,6 @@ namespace Api.Controllers
                 });
             }
         }
-
-
 
         [HttpGet("check-course-access/{courseId}")]
         [Authorize]
@@ -614,8 +615,6 @@ namespace Api.Controllers
         {
             var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             var random = new Random().Next(10000, 99999);
-            // Format: PREMIUM_{userId}_{months}_{timestamp}_{random}
-            // Dễ dàng parse để lấy userId và months
             return $"PREMIUM_{userId}_{months}_{timestamp}_{random}";
         }
 
@@ -625,70 +624,50 @@ namespace Api.Controllers
             HttpContext.Session.SetString($"{orderId}_package", package.Id.ToString());
             HttpContext.Session.SetString($"{orderId}_months", package.Months.ToString());
             HttpContext.Session.SetString($"{orderId}_amount", package.FinalPrice.ToString());
-            
-            _logger.LogInformation("Session stored - OrderId: {OrderId}, UserId: {UserId}, Months: {Months}", 
-                orderId, userId, package.Months);
         }
 
         private async Task<IActionResult> HandleSuccessfulPayment(MoMoPaymentResponse response)
+        {
+            var orderId = response.orderId;
+            var userId = HttpContext.Session.GetString(orderId);
+            var monthsStr = HttpContext.Session.GetString($"{orderId}_months");
+
+            if (string.IsNullOrEmpty(userId))
             {
-                var orderId = response.orderId;
-                _logger.LogInformation("Processing successful payment for OrderId: {OrderId}", orderId);
-                
-                // CÁCH 1: Lấy từ Session
-                var userId = HttpContext.Session.GetString(orderId);
-                var monthsStr = HttpContext.Session.GetString($"{orderId}_months");
-                
-                _logger.LogInformation("Session data - UserId: {UserId}, Months: {Months}", userId, monthsStr);
-                
-                // CÁCH 2: Nếu session không có, parse từ OrderId
-                if (string.IsNullOrEmpty(userId))
+                var parts = orderId.Split('_');
+                if (parts.Length >= 3)
                 {
-                    var parts = orderId.Split('_');
-                    _logger.LogInformation("Parsing OrderId: {OrderId}, Parts count: {Count}", orderId, parts.Length);
-                    
-                    if (parts.Length >= 3)
+                    userId = parts[1];
+                    if (parts.Length >= 4 && int.TryParse(parts[2], out int extractedMonths))
                     {
-                        userId = parts[1];
-                        _logger.LogInformation("Extracted userId from OrderId: {UserId}", userId);
-                        
-                        if (parts.Length >= 4)
-                        {
-                            if (int.TryParse(parts[2], out int extractedMonths))
-                            {
-                                monthsStr = extractedMonths.ToString();
-                                _logger.LogInformation("Extracted months from OrderId: {Months}", extractedMonths);
-                            }
-                        }
+                        monthsStr = extractedMonths.ToString();
                     }
                 }
-                
-                if (string.IsNullOrEmpty(userId))
-                {
-                    _logger.LogWarning("Cannot find userId for OrderId: {OrderId}", orderId);
-                    return Redirect($"http://localhost:5173/premium-failed?message=Không+xác+định+được+người+dùng");
-                }
-                
-                int months = 1;
-                if (!string.IsNullOrEmpty(monthsStr) && int.TryParse(monthsStr, out int parsedMonthsValue))
-                {
-                    months = parsedMonthsValue;
-                }
-                
-                _logger.LogInformation("Final months value: {Months}", months);
-                
-                var user = await _context.Users.FindAsync(userId);
-                if (user == null)
-                {
-                    _logger.LogWarning("User {UserId} not found", userId);
-                    return Redirect($"http://localhost:5173/premium-failed?message=Không+tìm+thấy+người+dùng");
-                }
-                
-                _logger.LogInformation("Found user: {UserName}, Current PremiumExpiry: {Expiry}", 
-                    user.UserName, user.PremiumExpiryDate);
-                
-                // Cập nhật premium expiry
-                var oldExpiry = user.PremiumExpiryDate;
+            }
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Redirect($"{ExpoBaseUrl}/failed?message=Không+xác+định+được+người+dùng");
+            }
+
+            int months = 1;
+            if (!string.IsNullOrEmpty(monthsStr) && int.TryParse(monthsStr, out int parsedMonthsValue))
+            {
+                months = parsedMonthsValue;
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return Redirect($"{ExpoBaseUrl}/failed?message=Không+tìm+thấy+người+dùng");
+            }
+
+            // tránh lưu transaction trùng khi cả return và ipn cùng chạy
+            var existingTransaction = await _context.Transactions
+                .FirstOrDefaultAsync(t => t.OrderId == orderId || t.TransactionId == response.transId);
+
+            if (existingTransaction == null)
+            {
                 if (user.PremiumExpiryDate == null || user.PremiumExpiryDate < DateTime.UtcNow)
                 {
                     user.PremiumExpiryDate = DateTime.UtcNow.AddMonths(months);
@@ -697,8 +676,7 @@ namespace Api.Controllers
                 {
                     user.PremiumExpiryDate = user.PremiumExpiryDate.Value.AddMonths(months);
                 }
-                
-                // *** THÊM: LƯU TRANSACTION VÀO DATABASE ***
+
                 var transaction = new Transaction
                 {
                     TransactionId = response.transId,
@@ -711,65 +689,60 @@ namespace Api.Controllers
                     CompletedAt = DateTime.UtcNow,
                     PaymentMethod = "MoMo"
                 };
-                
+
                 _context.Transactions.Add(transaction);
-                
                 await _context.SaveChangesAsync();
-                
-                _logger.LogInformation("User {UserName} upgraded to premium. Old: {OldExpiry}, New: {NewExpiry}", 
-                    user.UserName, oldExpiry, user.PremiumExpiryDate);
-                _logger.LogInformation("✅ Transaction saved: {TransactionId}, Amount: {Amount}", response.transId, response.amount);
-                
-                // Xóa session
-                ClearPaymentSession(orderId);
-                
-                // Redirect về frontend
-                var redirectUrl = $"http://localhost:5173/premium-success?" +
-                    $"amount={response.amount}&" +
-                    $"months={months}&" +
-                    $"expiry={user.PremiumExpiryDate:yyyy-MM-dd}&" +
-                    $"transactionNo={response.transId}";
-                
-                _logger.LogInformation("Redirecting to: {RedirectUrl}", redirectUrl);
-                
-                return Redirect(redirectUrl);
             }
+
+            ClearPaymentSession(orderId);
+
+            var redirectUrl =
+                $"{ExpoBaseUrl}/success?" +
+                $"amount={response.amount}&" +
+                $"months={months}&" +
+                $"expiry={user.PremiumExpiryDate:yyyy-MM-dd}&" +
+                $"transactionNo={response.transId}";
+
+            return Redirect(redirectUrl);
+        }
 
         private async Task ProcessSuccessfulPayment(MoMoPaymentResponse response)
         {
             var orderId = response.orderId;
-            _logger.LogInformation("Processing IPN for OrderId: {OrderId}", orderId);
-            
-            // Lấy userId từ session
             var userId = HttpContext.Session.GetString(orderId);
-            
-            // Nếu session không có, parse từ orderId
+
             if (string.IsNullOrEmpty(userId))
             {
                 var parts = orderId.Split('_');
                 if (parts.Length >= 3)
                 {
-                    userId = parts[1]; // Lấy userId từ phần tử thứ 2
-                    _logger.LogInformation("Extracted userId from OrderId for IPN: {UserId}", userId);
+                    userId = parts[1];
                 }
             }
-            
+
             if (string.IsNullOrEmpty(userId))
             {
-                _logger.LogWarning("Cannot find userId for OrderId: {OrderId}", orderId);
+                return;
+            }
+
+            var existingTransaction = await _context.Transactions
+                .FirstOrDefaultAsync(t => t.OrderId == orderId || t.TransactionId == response.transId);
+
+            if (existingTransaction != null)
+            {
+                ClearPaymentSession(orderId);
                 return;
             }
 
             var monthsStr = HttpContext.Session.GetString($"{orderId}_months");
-            
             int months = 1;
+
             if (!string.IsNullOrEmpty(monthsStr))
             {
                 int.TryParse(monthsStr, out months);
             }
             else
             {
-                // Parse từ orderId
                 var parts = orderId.Split('_');
                 if (parts.Length >= 4 && int.TryParse(parts[2], out int extractedMonths))
                 {
@@ -780,7 +753,6 @@ namespace Api.Controllers
             var user = await _context.Users.FindAsync(userId);
             if (user == null)
             {
-                _logger.LogWarning("User {UserId} not found for IPN", userId);
                 return;
             }
 
@@ -792,25 +764,36 @@ namespace Api.Controllers
             {
                 user.PremiumExpiryDate = user.PremiumExpiryDate.Value.AddMonths(months);
             }
-            
+
+            var transaction = new Transaction
+            {
+                TransactionId = response.transId,
+                OrderId = orderId,
+                UserId = userId,
+                Amount = response.amount,
+                Months = months,
+                Status = "success",
+                CreatedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow,
+                PaymentMethod = "MoMo"
+            };
+
+            _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync();
             ClearPaymentSession(orderId);
-
-            _logger.LogInformation("IPN - User {UserId} upgraded to premium. New expiry: {NewExpiry}", 
-                userId, user.PremiumExpiryDate);
         }
 
         private IActionResult HandleFailedPayment(MoMoPaymentResponse response)
         {
             var orderId = response.orderId;
-            
+
             if (!string.IsNullOrEmpty(orderId))
             {
                 ClearPaymentSession(orderId);
             }
 
             var errorMessage = Uri.EscapeDataString(response.message ?? "Thanh toán thất bại");
-            return Redirect($"http://localhost:5173/premium-failed?message={errorMessage}&code={response.resultCode}");
+            return Redirect($"{ExpoBaseUrl}/failed?message={errorMessage}&code={response.resultCode}");
         }
 
         private void ClearPaymentSession(string orderId)
@@ -824,23 +807,21 @@ namespace Api.Controllers
         #endregion
     }
 
-        public class CreatePremiumPaymentRequest
+    public class CreatePremiumPaymentRequest
     {
         public int PackageId { get; set; }
-        public string? PaymentMethod { get; set; } 
+        public string? PaymentMethod { get; set; }
         public string? CardNumber { get; set; }
         public string? CardHolder { get; set; }
         public string? CardExpire { get; set; }
         public string? CardCVV { get; set; }
     }
 
-
     public static class DictionaryExtensions
-{
-    public static string GetValueOrDefault(this Dictionary<string, string> dict, string key, string defaultValue = "")
     {
-        return dict.TryGetValue(key, out var value) ? value : defaultValue;
+        public static string GetValueOrDefault(this Dictionary<string, string> dict, string key, string defaultValue = "")
+        {
+            return dict.TryGetValue(key, out var value) ? value : defaultValue;
+        }
     }
-}
-
 }

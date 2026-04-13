@@ -13,6 +13,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
           <Stack.Screen name="profile" options={{ headerShown: true, title: 'Thông tin cá nhân' }} />
+          <Stack.Screen name="premium" />
         </Stack>
       </AuthGuard>
     </AuthProvider>

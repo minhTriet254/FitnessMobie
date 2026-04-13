@@ -22,7 +22,7 @@ export default function ProfileScreen() {
       id: 2,
       title: 'Đăng ký Premium',
       icon: 'star-outline',
-      onPress: () => Alert.alert('Đăng ký Premium', 'Đăng ký khóa học mới'),
+      onPress: () => router.push('/premium/packages'),
     },
     {
       id: 3,
@@ -67,6 +67,7 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.userName}>{user?.userName || 'Người dùng'}</Text>
         <Text style={styles.userEmail}>{user?.email || 'email@example.com'}</Text>
+        {user?.isPremium && <Text style={styles.premiumBadge}>👑 Premium</Text>}
       </View>
 
       {/* Menu Items */}
@@ -176,5 +177,11 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: Colors.gray,
+  },
+  premiumBadge: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.white,
   },
 });
