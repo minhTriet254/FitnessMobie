@@ -1,3 +1,4 @@
+// components/AuthGuard.tsx
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
@@ -15,24 +16,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
     const inProfile = segments[0] === 'profile';
     const isTabs = segments[0] === '(tabs)';
+    
+    // CHO PHÉP CÁC ROUTE NÀY KHÔNG BỊ REDIRECT
+    const allowedRoutes = ['course', 'lesson', 'premium'];
+    const isAllowedRoute = allowedRoutes.includes(segments[0]);
 
-    console.log('AuthGuard - isAuthenticated:', isAuthenticated);
-    console.log('AuthGuard - isNewUser:', isNewUser);
     console.log('AuthGuard - segments:', segments);
+    console.log('AuthGuard - isAllowedRoute:', isAllowedRoute);
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Chưa đăng nhập -> về login
-      console.log('➡️ Redirect to login');
       router.replace('/login');
     } else if (isAuthenticated) {
-      // Đã đăng nhập
       if (isNewUser && !inProfile) {
-        // User mới -> chuyển đến profile
-        console.log('➡️ New user, redirect to profile');
         router.replace('/profile');
-      } else if (!isNewUser && !isTabs && !inProfile) {
-        // User cũ -> chuyển thẳng đến home
-        console.log('➡️ Existing user, redirect to home');
+      }
+      else if (!isNewUser && !isTabs && !inProfile && !isAllowedRoute) {
+        // CHỈ REDIRECT KHI KHÔNG PHẢI ALLOWED ROUTE
         router.replace('/(tabs)');
       }
     }

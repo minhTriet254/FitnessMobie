@@ -4,6 +4,9 @@ export interface User {
   role: string;
   height?: number;
   weight?: number;
+  isPremium?: boolean;
+  premiumExpiryDate?: string | null;
+  daysRemaining?: number;
 }
 
 export interface LoginCredentials {
@@ -17,10 +20,6 @@ export interface RegisterCredentials {
   password: string;
 }
 
-export interface ProfileData {
-  height: number;
-  weight: number;
-}
 
 export interface Course {
   id: number;
@@ -35,12 +34,15 @@ export interface Course {
 }
 
 export interface AuthResponse {
+  token: string;
   userName: string;
   email: string;
   role: string;
-  token: string;
   height?: number;
   weight?: number;
+  isPremium?: boolean;
+  premiumExpiryDate?: string | null;
+  daysRemaining?: number;
 }
 
 export interface ProfileResponse {
@@ -51,3 +53,49 @@ export interface ProfileResponse {
   weight: number;
 }
 
+export interface Lesson {
+  id: number;
+  title: string;
+  content?: string;
+}
+
+export interface CourseDetailDto {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  startDate: string;
+  endDate: string;
+  lessons: Lesson[];
+}
+
+export interface PremiumError {
+  success: boolean;
+  message: string;
+  requiresPremium: boolean;
+  price: number;
+}
+export interface User {
+  userName: string;
+  email: string;
+  role: string;
+  height?: number;
+  weight?: number;
+  isPremium?: boolean;
+  premiumExpiryDate?: string | null;
+  daysRemaining?: number;
+}
+
+export interface ProfileData {
+  height: number;
+  weight: number;
+}
+
+export interface PremiumStatusResponse {
+  success: boolean;
+  isPremium: boolean;
+  expiryDate: string | null;
+  daysRemaining: number;
+  userName: string;
+  email: string;
+}

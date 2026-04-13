@@ -8,4 +8,9 @@ export default {
   gray: '#666666',
   lightGray: '#f5f5f5',
   border: '#dddddd',
+  text: "#333333",
+  error: "#FF3B30",
+  success: "#34C759",
+  warning: "#FF9500",
+  darkGray: "#333333",
 };
