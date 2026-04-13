@@ -16,6 +16,7 @@ namespace Api.Data
         public DbSet<Lesson> Lessons { get; set; }
         public DbSet<PremiumConfig> PremiumConfigs { get; set; } 
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<VideoReview> VideoReviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
