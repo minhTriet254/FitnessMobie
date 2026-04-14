@@ -17,6 +17,7 @@ namespace Api.Data
         public DbSet<PremiumConfig> PremiumConfigs { get; set; } 
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<VideoReview> VideoReviews { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -28,6 +29,12 @@ namespace Api.Data
                 new IdentityRole { Name = "User", NormalizedName = "USER" },
             };
             builder.Entity<IdentityRole>().HasData(roles);
+
+            builder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

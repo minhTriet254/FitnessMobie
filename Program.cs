@@ -6,10 +6,12 @@ using Api.Services;
 using Api.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
+using Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +53,25 @@ builder.Services.AddAuthentication(options =>
             )
         ),
         ValidateLifetime = false,
-        RoleClaimType = ClaimTypes.Role
+        RoleClaimType = ClaimTypes.Role,
+        NameClaimType = ClaimTypes.Name
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/chatHub"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -78,7 +98,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins()
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://192.168.1.2:8081",
+                "exp://192.168.1.2:8081"
+            )
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -91,6 +117,8 @@ builder.Logging.AddDebug();
 builder.Logging.AddFilter("Api.Services.MoMoService", LogLevel.Debug);
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -130,13 +158,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 
-// Quan trọng: Session trước auth
+// Session trước auth
 app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ChatHub>("/chatHub");
 
 using (var scope = app.Services.CreateScope())
 {
