@@ -17,7 +17,7 @@ namespace Api.Controllers
         private readonly ILogger<PremiumController> _logger;
 
         // Expo Go deep link base
-        private const string ExpoBaseUrl = "exp://192.168.1.2:8081/--/premium";
+        private const string ExpoBaseUrl = "exp://192.168.1.3:8081/--/premium";
 
         public PremiumController(
             ApplicationDbContext context,

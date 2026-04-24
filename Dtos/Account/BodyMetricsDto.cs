@@ -2,12 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Api.Dtos.Account
 {
-    public class ProfileDto
+    public class BodyMetricsDto
     {
         [Required]
-        public string Gender { get; set; }=string.Empty;
-        [Required]
         public double Height { get; set; }
+        
         [Required]
         public double Weight { get; set; }
     }

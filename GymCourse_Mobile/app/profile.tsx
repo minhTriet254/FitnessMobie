@@ -23,6 +23,7 @@ const Colors = {
 };
 
 export default function ProfileScreen() {
+  const [gender, setGender] = useState(''); // Thêm state gender
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,11 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const handleSubmit = async () => {
+    if (!gender) { // Thêm validation gender
+      Alert.alert('Lỗi', 'Vui lòng chọn giới tính');
+      return;
+    }
+
     if (!height || !weight) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
       return;
@@ -54,7 +60,11 @@ export default function ProfileScreen() {
     }
 
     setLoading(true);
-    const success = await updateProfile({ height: heightNum, weight: weightNum });
+    const success = await updateProfile({ 
+      gender, // Thêm gender vào request
+      height: heightNum, 
+      weight: weightNum 
+    });
     setLoading(false);
 
     if (success) {
@@ -76,11 +86,37 @@ export default function ProfileScreen() {
           <Text style={styles.title}>GymCourse</Text>
           <Text style={styles.subtitle}>Hoàn tất thông tin</Text>
           
-          <Text style={styles.label}>Tên đăng nhập</Text>
-          <Text style={styles.userName}>{user?.userName}</Text>
-          
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.userName}>{user?.email}</Text>
+          {/* Thêm phần chọn giới tính */}
+          <Text style={styles.label}>Giới tính</Text>
+          <View style={styles.genderContainer}>
+            <TouchableOpacity
+              style={[
+                styles.genderOption,
+                gender === 'male' && styles.genderOptionActive
+              ]}
+              onPress={() => setGender('male')}
+              disabled={loading}
+            >
+              <Text style={[
+                styles.genderText,
+                gender === 'male' && styles.genderTextActive
+              ]}>Nam</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.genderOption,
+                gender === 'female' && styles.genderOptionActive
+              ]}
+              onPress={() => setGender('female')}
+              disabled={loading}
+            >
+              <Text style={[
+                styles.genderText,
+                gender === 'female' && styles.genderTextActive
+              ]}>Nữ</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Chiều cao (cm)</Text>
           <TextInput
@@ -161,6 +197,35 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  // Thêm styles cho gender
+  genderContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  genderOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  genderOptionActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  genderText: {
+    fontSize: 16,
+    color: Colors.gray,
+    fontWeight: '500',
+  },
+  genderTextActive: {
+    color: Colors.white,
+    fontWeight: 'bold',
   },
   input: {
     backgroundColor: Colors.white,

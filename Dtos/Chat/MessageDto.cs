@@ -9,5 +9,8 @@ namespace Api.Dtos.Chat
         public string SenderUserName { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public DateTime SentAt { get; set; }
+        public int? ConversationId { get; set; } // NULL = Global Chat
+        public bool IsReadByAdmin { get; set; }
+        public bool IsGlobalChat { get; set; }
     }
 }

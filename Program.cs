@@ -77,6 +77,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddHttpClient<MoMoService>();
 
+builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ILessonRepostory, LessonRepostory>();
 builder.Services.AddScoped<IVideoRepository, VideoRepository>();
@@ -102,8 +103,8 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "http://192.168.1.2:8081",
-                "exp://192.168.1.2:8081"
+                "http://192.168.1.3:8081",
+                "exp://192.168.1.3:8081"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -176,6 +177,7 @@ using (var scope = app.Services.CreateScope())
 
     await SeedData.SeedAdminAsync(userManager, roleManager);
     await SeedData.SeedPremiumPackagesAsync(context);
+    await SeedData.SeedCoursesAndLessonsAsync(context);
 }
 
 app.Run();

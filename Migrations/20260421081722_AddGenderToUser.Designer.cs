@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260414174759_AddChatFeature")]
-    partial class AddChatFeature
+    [Migration("20260421081722_AddGenderToUser")]
+    partial class AddGenderToUser
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,39 @@ namespace Api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Api.Models.Conversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastMessageAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Conversations");
+                });
 
             modelBuilder.Entity("Api.Models.Course", b =>
                 {
@@ -94,6 +127,12 @@ namespace Api.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<int?>("ConversationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsReadByAdmin")
+                        .HasColumnType("bit");
+
                     b.Property<string>("SenderId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -102,6 +141,8 @@ namespace Api.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
 
                     b.HasIndex("SenderId");
 
@@ -209,6 +250,10 @@ namespace Api.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Height")
                         .HasColumnType("float");
@@ -358,13 +403,13 @@ namespace Api.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "0f0e13ca-3466-492d-802f-c069837ae47e",
+                            Id = "14d81ebf-a4c1-4197-8f22-dbf379e872e4",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "a386e712-d9b0-4c77-be53-f49ca49bae34",
+                            Id = "b3784d1c-fff6-4e3e-af02-b9cf698b5c20",
                             Name = "User",
                             NormalizedName = "USER"
                         });
@@ -476,6 +521,23 @@ namespace Api.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Api.Models.Conversation", b =>
+                {
+                    b.HasOne("Api.Models.User", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId");
+
+                    b.HasOne("Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Api.Models.Lesson", b =>
                 {
                     b.HasOne("Api.Models.Course", "Course")
@@ -489,11 +551,17 @@ namespace Api.Migrations
 
             modelBuilder.Entity("Api.Models.Message", b =>
                 {
+                    b.HasOne("Api.Models.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId");
+
                     b.HasOne("Api.Models.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Conversation");
 
                     b.Navigation("Sender");
                 });
@@ -580,6 +648,11 @@ namespace Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Api.Models.Conversation", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("Api.Models.Course", b =>

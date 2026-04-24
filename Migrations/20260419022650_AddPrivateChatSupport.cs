@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddPremiumSystem : Migration
+    public partial class AddPrivateChatSupport : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,23 +16,23 @@ namespace Api.Migrations
             migrationBuilder.DeleteData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
-                keyValue: "1bdcd6c5-aab3-490b-bda2-6fdae6fc8999");
+                keyValue: "02f16ce7-7abe-4a51-a116-6b4978728f36");
 
             migrationBuilder.DeleteData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
-                keyValue: "ef8503c0-c893-4234-8ad6-661af64d2c54");
+                keyValue: "05979b60-95a2-4f26-a289-9eb50c5e6453");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "CreatedAt",
-                table: "AspNetUsers",
-                type: "datetime2",
+            migrationBuilder.AddColumn<bool>(
+                name: "IsReadByAdmin",
+                table: "Messages",
+                type: "bit",
                 nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+                defaultValue: false);
 
             migrationBuilder.AddColumn<DateTime>(
-                name: "PremiumExpiryDate",
-                table: "AspNetUsers",
+                name: "LastMessageAt",
+                table: "Conversations",
                 type: "datetime2",
                 nullable: true);
 
@@ -41,8 +41,8 @@ namespace Api.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "282306fa-951b-4b9d-b74f-33b84d7f9186", null, "User", "USER" },
-                    { "6c4c4230-83ee-4385-bdf6-45ff0cfe93fa", null, "Admin", "ADMIN" }
+                    { "689deef9-6692-46d4-9593-b632bb09a10a", null, "User", "USER" },
+                    { "7a797af5-dff7-4f57-90cf-71db7a1df7b8", null, "Admin", "ADMIN" }
                 });
         }
 
@@ -52,28 +52,28 @@ namespace Api.Migrations
             migrationBuilder.DeleteData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
-                keyValue: "282306fa-951b-4b9d-b74f-33b84d7f9186");
+                keyValue: "689deef9-6692-46d4-9593-b632bb09a10a");
 
             migrationBuilder.DeleteData(
                 table: "AspNetRoles",
                 keyColumn: "Id",
-                keyValue: "6c4c4230-83ee-4385-bdf6-45ff0cfe93fa");
+                keyValue: "7a797af5-dff7-4f57-90cf-71db7a1df7b8");
 
             migrationBuilder.DropColumn(
-                name: "CreatedAt",
-                table: "AspNetUsers");
+                name: "IsReadByAdmin",
+                table: "Messages");
 
             migrationBuilder.DropColumn(
-                name: "PremiumExpiryDate",
-                table: "AspNetUsers");
+                name: "LastMessageAt",
+                table: "Conversations");
 
             migrationBuilder.InsertData(
                 table: "AspNetRoles",
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "1bdcd6c5-aab3-490b-bda2-6fdae6fc8999", null, "User", "USER" },
-                    { "ef8503c0-c893-4234-8ad6-661af64d2c54", null, "Admin", "ADMIN" }
+                    { "02f16ce7-7abe-4a51-a116-6b4978728f36", null, "Admin", "ADMIN" },
+                    { "05979b60-95a2-4f26-a289-9eb50c5e6453", null, "User", "USER" }
                 });
         }
     }

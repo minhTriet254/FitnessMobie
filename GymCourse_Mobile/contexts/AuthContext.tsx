@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       userName: data.userName || '',
       email: data.email || '',
       role: data.role || 'User',
+      gender: data.gender,
       height: data.height,
       weight: data.weight,
       isPremium: data.isPremium ?? false,
@@ -231,41 +232,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateProfile = async (profileData: ProfileData): Promise<boolean> => {
-    try {
-      setError(null);
-      console.log('📝 Updating profile:', profileData);
+const updateProfile = async (profileData: ProfileData): Promise<boolean> => {
+  try {
+    setError(null);
+    console.log('📝 Updating profile:', profileData);
 
-      await api.post('/Account/profile', null, {
-        params: {
-          Height: profileData.height,
-          Weight: profileData.weight,
-        },
-      });
+    // Thay đổi từ params sang body
+    await api.post('/Account/profile', {
+      gender: profileData.gender, // Thêm gender
+      height: profileData.height,
+      weight: profileData.weight,
+    });
 
-      if (user) {
-        const updatedUser: User = {
-          ...user,
-          height: profileData.height,
-          weight: profileData.weight,
-        };
+    if (user) {
+      const updatedUser: User = {
+        ...user,
+        gender: profileData.gender, // Thêm gender
+        height: profileData.height,
+        weight: profileData.weight,
+      };
 
-        await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-        setUser(updatedUser);
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      setUser(updatedUser);
 
-        await AsyncStorage.removeItem('isNewUser');
-        setIsNewUser(false);
+      await AsyncStorage.removeItem('isNewUser');
+      setIsNewUser(false);
 
-        console.log('✅ Profile updated, isNewUser cleared');
-      }
-
-      return true;
-    } catch (error: any) {
-      console.error('❌ Profile update error:', error.response?.data);
-      setError('Cập nhật profile thất bại');
-      return false;
+      console.log('✅ Profile updated, isNewUser cleared');
     }
-  };
+
+    return true;
+  } catch (error: any) {
+    console.error('❌ Profile update error:', error.response?.data);
+    setError('Cập nhật profile thất bại');
+    return false;
+  }
+};
 
   const logout = async () => {
     try {

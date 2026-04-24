@@ -8,6 +8,7 @@ namespace Api.Models
 {
     public class User:IdentityUser
     {
+        public string Gender { get; set; }=string.Empty;
         public double Height { get; set; }
         public double Weight { get; set; }
         public DateTime? PremiumExpiryDate { get; set; } 

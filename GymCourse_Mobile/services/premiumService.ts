@@ -21,3 +21,14 @@ export const manualUpgrade = async (userId: string) => {
   const res = await api.post(`/api/Premium/manual-upgrade/${userId}`);
   return res.data;
 };
+
+export const checkPremiumStatus = async () => {
+  try {
+    const res = await api.get("/api/Premium/check-status");
+    console.log('📡 API check-status response:', res.data);
+    return res.data;
+  } catch (error) {
+    console.error("Error checking premium status:", error);
+    return { isPremium: false };
+  }
+};

@@ -18,6 +18,7 @@ namespace Api.Data
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<VideoReview> VideoReviews { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<Conversation> Conversations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

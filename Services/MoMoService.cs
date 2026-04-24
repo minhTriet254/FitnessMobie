@@ -31,8 +31,8 @@ namespace Api.Services
             _accessKey = _configuration["MoMo:AccessKey"] ?? "F8BBA842ECF85";
             _secretKey = _configuration["MoMo:SecretKey"] ?? "K951B6PE1waDMi640xX08PD3vg6EkVlz";
             _endpoint = _configuration["MoMo:Endpoint"] ?? "https://test-payment.momo.vn/v2/gateway/api/create";
-            _returnUrl = _configuration["MoMo:ReturnUrl"] ?? "http://192.168.1.2:5086/api/Premium/momo-return";
-            _notifyUrl = _configuration["MoMo:NotifyUrl"] ?? "http://192.168.1.2:5086/api/Premium/momo-ipn";
+            _returnUrl = _configuration["MoMo:ReturnUrl"] ?? "http://192.168.1.3:5086/api/Premium/momo-return";
+            _notifyUrl = _configuration["MoMo:NotifyUrl"] ?? "http://192.168.1.3:5086/api/Premium/momo-ipn";
         }
 
         public async Task<MoMoPaymentResponse> CreateCardPaymentAsync(MoMoPaymentRequest request)

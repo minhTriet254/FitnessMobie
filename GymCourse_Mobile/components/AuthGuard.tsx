@@ -17,8 +17,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const inProfile = segments[0] === 'profile';
     const isTabs = segments[0] === '(tabs)';
     
-    // CHO PHÉP CÁC ROUTE NÀY KHÔNG BỊ REDIRECT
-    const allowedRoutes = ['course', 'lesson', 'premium'];
+    // ✅ CHO PHÉP CÁC ROUTE NÀY
+    const allowedRoutes = ['course', 'lesson', 'premium', 'Chat', 'admin'];
     const isAllowedRoute = allowedRoutes.includes(segments[0]);
 
     console.log('AuthGuard - segments:', segments);
@@ -31,7 +31,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace('/profile');
       }
       else if (!isNewUser && !isTabs && !inProfile && !isAllowedRoute) {
-        // CHỈ REDIRECT KHI KHÔNG PHẢI ALLOWED ROUTE
         router.replace('/(tabs)');
       }
     }
